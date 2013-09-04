@@ -9,6 +9,7 @@ import PyTango as pt
 import pyqtgraph as pq
 from PyQt4 import QtGui, QtCore
 import sys
+import time
 
 class SmallTrend(QtGui.QWidget):
 	def __init__(self, parent = None):
@@ -16,16 +17,20 @@ class SmallTrend(QtGui.QWidget):
 		
 		self.maxDataSize = 2000
 		self.xSpan = 200.0
-		self.ySpan = 30.0
+		self.ySpan = 1.0
 		self.xScale = self.size().width() / self.xSpan
 		self.yScale = self.size().height() / self.ySpan
 		
 		self.xData = np.zeros(self.maxDataSize)
 		self.yData = np.zeros(self.maxDataSize)
-		self.paintPath = QtGui.QPainterPath(QtCore.QPointF(self.xData[0], self.yData[0]))
-		self.xPos = 1		
-		for p in range(self.xPos):
-			self.paintPath.lineTo(self.xData[p], self.yData[p])
+		self.xData[0] = time.time()
+		self.paintPath = QtGui.QPainterPath(QtCore.QPointF((self.xData[0]-self.xData[0])*self.xScale, self.yData[0]))
+		self.xPos = 0
+		self.xNum = 1	
+# 		self.xData[self.xPos]=time.time()	
+# 		for p in range(self.xNum):
+# 			index = p + self.xPos
+# 			self.paintPath.lineTo((self.xData[self.xPos+p]-self.xData[0])*self.xScale, self.yData[self.xPos+p])
 			
 		self.curvePen = QtGui.QPen(QtGui.QColor(0x99ccff))
 		self.curvePen.setWidthF(1.3)
@@ -37,7 +42,31 @@ class SmallTrend(QtGui.QWidget):
 				
 			
 	def updateData(self, xNew, yNew):
-		pass
+		self.xPos += 1
+		if self.xPos >= self.maxDataSize:
+			self.xPos = 0
+		self.xData[self.xPos]=xNew	
+		self.yData[self.xPos]=yNew
+
+		self.xNum += 1	
+		if self.xNum > self.maxDataSize:
+			self.xNum = self.maxDataSize
+#		self.paintPath = QtGui.QPainterPath(QtCore.QPointF(self.xData[self.xPos], self.yData[self.xPos]))
+		print 'xNum', self.xNum
+		self.paintPath = QtGui.QPainterPath(QtCore.QPointF((self.xData[0]-self.xData[0])*self.xScale, self.yData[0]))
+		for p in range(self.xNum):
+			index = p #+ self.xPos
+			print index
+			print (self.xData[index]-self.xData[0])*self.xScale
+			print self.yData[index]*self.yScale			
+			self.paintPath.lineTo((self.xData[index]-self.xData[0])*self.xScale, self.yData[index]*self.yScale)
+			
+		self.update()
+	
+	def resizeEvent(self, e):
+		self.xScale = self.size().width() / self.xSpan
+		self.yScale = self.size().height() / self.ySpan
+		print 'In resizeEvent: scale ', self.xScale, self.yScale
 		
 	def paintEvent(self, e):
 		qp = QtGui.QPainter()
@@ -60,6 +89,13 @@ class TrendTest(QtGui.QWidget):
 		label = QtGui.QLabel(''.join(('Trending ', self.deviceName)))
 		layout.addWidget(label)
 		layout.addWidget(self.trendWidget)
+		
+		self.timer = QtCore.QTimer()
+		QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.updateData)
+		self.timer.start(500)
+		
+	def updateData(self):
+		self.trendWidget.updateData(time.time(), np.random.rand())
 		
 
 if __name__ == '__main__':
