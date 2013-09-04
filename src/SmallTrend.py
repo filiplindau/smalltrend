@@ -30,7 +30,11 @@ class SmallTrend(QtGui.QWidget):
 		self.curvePen = QtGui.QPen(QtGui.QColor(0x99ccff))
 		self.curvePen.setWidthF(1.3)
 		self.axisPen = QtGui.QPen(QtGui.QColor(0xffcc66))
-		self.axisPen.setWidthF(1.0)		
+		self.axisPen.setWidthF(1.0)
+		
+		self.setMinimumWidth(200)
+		self.setMinimumHeight(200)
+				
 			
 	def updateData(self, xNew, yNew):
 		pass
