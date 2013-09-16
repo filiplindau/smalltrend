@@ -11,13 +11,13 @@ from PyQt4 import QtGui, QtCore
 import sys
 import time
 
-class SmallTrend(QtGui.QGraphicsView):
+class SmallTrend(QtGui.QWidget):
 	def __init__(self, parent = None):
 		self.bkgColor = QtGui.QColor(0x000000)
 		self.axisColor = QtGui.QColor(0xffcc66)
 		self.crvColor = QtGui.QColor(0x99ccff)
 		
-		QtGui.QGraphicsView.__init__(self,parent)
+		QtGui.QWidget.__init__(self,parent)
 		
 		self.maxDataSize = 20000
 		self.xSpan = 100.0
@@ -59,26 +59,10 @@ class SmallTrend(QtGui.QGraphicsView):
 		self.setMinimumWidth(50)
 		self.setMinimumHeight(40)
 		self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
- 		self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
- 		self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 		
 		self.axisRect = QtCore.QRectF(10.0, 10.0, self.size().width(), self.size().height())		
 		self.viewRect = QtCore.QRectF(0,-0.01,self.xSpan,2*self.ySpan)
 		
-		self.graphicsScene = QtGui.QGraphicsScene()
-		self.graphicsScene.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(self.bkgColor)))
-		self.scale(1,-1)
-		self.scenePoly = self.graphicsScene.addPolygon(self.dataPoly, pen=self.curvePen, brush=self.curveBrush)
-		self.scenePoly.setBrush(self.curveBrush)
-		
-		p2 = QtCore.QRectF(0,0,50,50)
-#		self.graphicsScene.addRect(p2, pen=self.curvePen, brush = self.curveBrush)
-	
-		self.setScene(self.graphicsScene)
-		self.fitInView(self.viewRect)
-		
-		
-		print self.sceneRect()	
 		
 				
 			
@@ -96,27 +80,19 @@ class SmallTrend(QtGui.QGraphicsView):
 		poly = self.scenePoly.polygon()
 		poly.replace(poly.count()-1, QtCore.QPointF(xNew - self.xData[0], yNew))
 		poly.append(QtCore.QPointF(xNew - self.xData[0], 0))
-		self.graphicsScene.removeItem(self.scenePoly)
-		self.scenePoly = self.graphicsScene.addPolygon(poly, pen = self.curvePen, brush = self.curveBrush)
-# 		p3 = QtGui.QPolygonF()
-# 		p3.append(QtCore.QPointF(0.01,0.0))
-# 		p3.append(QtCore.QPointF(0.01,50.0))
-# 		p3.append(QtCore.QPointF(50.01,50.0))
-# 		p3.append(QtCore.QPointF(50.01,0.0))
-# 		self.graphicsScene.addPolygon(p3, pen=self.curvePen, brush=self.curveBrush)
 
 
 		self.update()
 
-# 		for ind in range(poly.count()):
-# 			print poly.at(ind)
 
-	def drawForeground(self, painter, rect):
-		print "In drawForeground:"
-		print rect.x(), rect.y()
+	def paintEvent(self, e):
+		print "In paintEvent:"
+#		print rect.x(), rect.y()
  		axisOffset = 10
  		right = self.width()-2*axisOffset
  		bottom = self.height()-2*axisOffset
+ 		painter = QtGui.QPainter()
+ 		painter.begin(self)
   		painter.setWorldMatrixEnabled(False)
   		painter.setRenderHint(QtGui.QPainter.Antialiasing)
   		painter.setPen(self.axisPen)
@@ -125,7 +101,7 @@ class SmallTrend(QtGui.QGraphicsView):
   		painter.drawText(axisOffset+2, bottom+axisOffset-2, str(self.xSpan))
   		s = str(self.ySpan)
   		painter.drawText(right-QtGui.QFontMetricsF(self.axisFont).width(s)+8, axisOffset+self.axisFontHeight-3, s)
- 		
+ 		painter.end()
 		
 	
 	def resizeEvent(self, e):
