@@ -20,18 +20,21 @@ class SmallTrend(QtGui.QWidget):
 		QtGui.QWidget.__init__(self,parent)
 		
 		self.maxDataSize = 20000
-		self.xSpan = 100.0
-		self.ySpan = 2.0
-		self.xScale = (self.size().width() - 50) / self.xSpan		
-		self.yScale = (self.size().height() - 50) / self.ySpan
+		self.xSpan = 50.0
+		self.ySpan = 1.5
+ 		self.axisOffset = 10
+		self.xScale = (self.size().width() - self.axisOffset*2) / self.xSpan		
+		self.yScale = (self.size().height() - self.axisOffset*2) / self.ySpan
+
+		
 		
 		self.xData = np.zeros(self.maxDataSize)
 		self.yData = np.zeros(self.maxDataSize)
 		self.xData[0] = time.time()
 		self.paintPath = QtGui.QPainterPath(QtCore.QPointF((self.xData[0]-self.xData[0])*self.xScale, self.yData[0]))
 		self.dataPoly = QtGui.QPolygonF()
-		self.dataPoly.append(QtCore.QPointF(0.01,0.0))
-		self.dataPoly.append(QtCore.QPointF(self.xSpan,0))
+		self.dataPoly.append(QtCore.QPointF(self.width()-self.axisOffset,self.height()-self.axisOffset))
+#		self.dataPoly.append(QtCore.QPointF(self.xSpan,0))
 		print self.dataPoly.at(0)
 		print self.dataPoly.at(1)
 		self.xPos = 0
@@ -42,7 +45,7 @@ class SmallTrend(QtGui.QWidget):
 # 			self.paintPath.lineTo((self.xData[self.xPos+p]-self.xData[0])*self.xScale, self.yData[self.xPos+p])
 			
 		self.curvePen = QtGui.QPen(self.crvColor)
-		self.curvePen.setWidthF(0.1)
+		self.curvePen.setWidthF(1.3)
 		crvFillColor = self.crvColor
 #		crvFillColor = QtGui.QColor(0x3399ff)
 		crvFillColor.setAlphaF(0.5)
@@ -59,7 +62,11 @@ class SmallTrend(QtGui.QWidget):
 		self.setMinimumWidth(50)
 		self.setMinimumHeight(40)
 		self.setSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-		
+		p = self.palette()
+		p.setColor(self.backgroundRole(), self.bkgColor)
+		self.setPalette(p)
+		self.setAutoFillBackground(True)
+
 		self.axisRect = QtCore.QRectF(10.0, 10.0, self.size().width(), self.size().height())		
 		self.viewRect = QtCore.QRectF(0,-0.01,self.xSpan,2*self.ySpan)
 		
@@ -77,9 +84,8 @@ class SmallTrend(QtGui.QWidget):
 		if self.xNum > self.maxDataSize:
 			self.xNum = self.maxDataSize
 
-		poly = self.scenePoly.polygon()
-		poly.replace(poly.count()-1, QtCore.QPointF(xNew - self.xData[0], yNew))
-		poly.append(QtCore.QPointF(xNew - self.xData[0], 0))
+		self.dataPoly.replace(self.dataPoly.count()-1, QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset-yNew*self.yScale))
+		self.dataPoly.append(QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset))
 
 
 		self.update()
@@ -88,29 +94,37 @@ class SmallTrend(QtGui.QWidget):
 	def paintEvent(self, e):
 		print "In paintEvent:"
 #		print rect.x(), rect.y()
- 		axisOffset = 10
- 		right = self.width()-2*axisOffset
- 		bottom = self.height()-2*axisOffset
+ 		right = self.width()-2*self.axisOffset
+ 		bottom = self.height()-2*self.axisOffset
  		painter = QtGui.QPainter()
  		painter.begin(self)
   		painter.setWorldMatrixEnabled(False)
-  		painter.setRenderHint(QtGui.QPainter.Antialiasing)
+  		painter.setRenderHint(QtGui.QPainter.Antialiasing, True)  	
+  		painter.setPen(self.curvePen)
+  		painter.setBrush(self.curveBrush)
+  		painter.drawPolygon(self.dataPoly)
   		painter.setPen(self.axisPen)
+  		painter.setBrush(self.axisBrush)
   		painter.setFont(self.axisFont)
-  		painter.drawRect(axisOffset, axisOffset, right, bottom)
-  		painter.drawText(axisOffset+2, bottom+axisOffset-2, str(self.xSpan))
+  		painter.drawRect(self.axisOffset, self.axisOffset, right, bottom)
+  		painter.drawText(self.axisOffset+2, bottom+self.axisOffset-2, str(self.xSpan))
   		s = str(self.ySpan)
-  		painter.drawText(right-QtGui.QFontMetricsF(self.axisFont).width(s)+8, axisOffset+self.axisFontHeight-3, s)
+  		painter.drawText(right-QtGui.QFontMetricsF(self.axisFont).width(s)+8, self.axisOffset+self.axisFontHeight-3, s)
  		painter.end()
 		
 	
 	def resizeEvent(self, e):
-		self.xScale = self.size().width() / self.xSpan
-		self.yScale = self.size().height() / self.ySpan
+		self.xScale = (self.size().width() - self.axisOffset*2) / self.xSpan		
+		self.yScale = (self.size().height() - self.axisOffset*2) / self.ySpan
 		print 'In resizeEvent: scale ', self.xScale, self.yScale
 		print 'Extents: ', self.size().width(), self.size().height() 
-		self.fitInView(self.viewRect)
-		QtGui.QGraphicsView.resizeEvent(self, e)
+		self.dataPoly = QtGui.QPolygonF()
+		self.dataPoly.append(QtCore.QPointF(self.width() - self.axisOffset,self.height() - self.axisOffset))
+#		self.dataPoly.append(QtCore.QPointF(self.xSpan,0))
+		for ind in range(self.xData.shape[0]-1):
+			self.dataPoly.append(QtCore.QPointF(self.width()-self.axisOffset-(self.xData[ind+1] - self.xData[0])*self.xScale, self.height()-self.axisOffset-self.yData[ind+1]*self.yScale))
+		self.dataPoly.append(QtCore.QPointF(self.width()-self.axisOffset-(self.xData[-1] - self.xData[0])*self.xScale, self.height()-self.axisOffset))
+		
 		
 
 		
@@ -130,7 +144,7 @@ class TrendTest(QtGui.QWidget):
 		
 		self.timer = QtCore.QTimer()
 		QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.updateData)
-		self.timer.start(500)
+		self.timer.start(200)
 		
 	def updateData(self):
 		self.trendWidget.updateData(time.time(), np.random.rand())
