@@ -32,11 +32,8 @@ class SmallTrend(QtGui.QWidget):
 		self.yData = np.zeros(self.maxDataSize)
 		self.xData[0] = time.time()
 		self.paintPath = QtGui.QPainterPath(QtCore.QPointF((self.xData[0]-self.xData[0])*self.xScale, self.yData[0]))
-		self.dataPoly = QtGui.QPolygonF()
-		self.dataPoly.append(QtCore.QPointF(self.width()-self.axisOffset,self.height()-self.axisOffset))
-#		self.dataPoly.append(QtCore.QPointF(self.xSpan,0))
-		print self.dataPoly.at(0)
-		print self.dataPoly.at(1)
+		self.dataPoly = QtGui.QPolygonF([QtCore.QPointF(self.width()-self.axisOffset,self.height()-self.axisOffset),
+										QtCore.QPointF(self.width()-self.axisOffset,self.height()-self.axisOffset)])
 		self.xPos = 0
 		self.xNum = 1	
 # 		self.xData[self.xPos]=time.time()	
@@ -74,19 +71,32 @@ class SmallTrend(QtGui.QWidget):
 				
 			
 	def updateData(self, xNew, yNew):
+		print 'In updateData: '
 		self.xPos += 1
 		if self.xPos >= self.maxDataSize:
 			self.xPos = 0
 		self.xData[self.xPos]=xNew	
 		self.yData[self.xPos]=yNew
-
+		print xNew, yNew, self.xPos
 		self.xNum += 1	
 		if self.xNum > self.maxDataSize:
 			self.xNum = self.maxDataSize
 
-		self.dataPoly.replace(self.dataPoly.count()-1, QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset-yNew*self.yScale))
-		self.dataPoly.append(QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset))
-
+# 		newPoint = QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset-yNew*self.yScale)
+# 		newPoint2 = QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset)
+# 		print 'Points: ', newPoint, newPoint2
+# 		self.dataPoly.replace(self.xPos, newPoint)
+# 		self.dataPoly.append(newPoint2)
+		
+		t0 = time.clock()
+		p = []
+		for ind in range(self.xPos):
+			p.append(QtCore.QPointF(self.width()-self.axisOffset-(self.xData[ind] - self.xData[0])*self.xScale, self.height()-self.axisOffset-self.yData[ind]*self.yScale))
+		p.append(QtCore.QPointF(self.width()-self.axisOffset-(xNew - self.xData[0])*self.xScale, self.height()-self.axisOffset))
+		self.dataPoly = QtGui.QPolygonF(p)
+		
+		t1 = time.clock()-t0
+		print 'Time: ', t1, t1/self.xNum
 
 		self.update()
 
@@ -102,7 +112,7 @@ class SmallTrend(QtGui.QWidget):
   		painter.setRenderHint(QtGui.QPainter.Antialiasing, True)  	
   		painter.setPen(self.curvePen)
   		painter.setBrush(self.curveBrush)
-  		painter.drawPolygon(self.dataPoly)
+  		painter.drawPolygon(self.dataPoly, fillRule = QtCore.Qt.WindingFill)
   		painter.setPen(self.axisPen)
   		painter.setBrush(self.axisBrush)
   		painter.setFont(self.axisFont)
@@ -144,7 +154,7 @@ class TrendTest(QtGui.QWidget):
 		
 		self.timer = QtCore.QTimer()
 		QtCore.QObject.connect(self.timer, QtCore.SIGNAL("timeout()"), self.updateData)
-		self.timer.start(200)
+		self.timer.start(500)
 		
 	def updateData(self):
 		self.trendWidget.updateData(time.time(), np.random.rand())
